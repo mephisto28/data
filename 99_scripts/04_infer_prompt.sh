@@ -2,6 +2,8 @@ set -xe
 
 ## 1. Define input and output
 input_list=${1:-"00_Raw/input.list"}
+rank_count=${2:-2}
+num_proc_per_gpu=1
 output_dir=01_Meta/03_clip_captions
 
 ## 2. Define Environment
@@ -12,26 +14,29 @@ TOOL_DIR=/mnt/lg102/zwshi/projects/core/sbp/tools/
 
 
 ## 4. Run scripts
+function cleanup() {
+    echo "Interrupt signal received. Terminating subprocesses..."
+    pkill -P $$  # Terminate all child processes
+}
+
+trap cleanup INT
+
 mkdir -p $output_dir
 for i in $(cat $input_list);
 do
     output=$output_dir/${i}.list
-    mkdir -p $(dirname $output)
-    for r in {0..3};
-    do
-        CUDA_VISIBLE_DEVICES=0 $python $TOOL_DIR/infer/clip_interrogate.py \
-	    --input_ssf 00_Raw/$i \
-	    --output_prompts $output \
-	    --rank $r \
-	    --total_rank 8 &
-    done
-    for r in {4..7};
-    do
-        CUDA_VISIBLE_DEVICES=1 $python $TOOL_DIR/infer/clip_interrogate.py \
-	    --input_ssf 00_Raw/$i \
-	    --output_prompts $output \
-	    --rank $r \
-	    --total_rank 8 &
-    done
-    wait
+    if [ ! -e $output ];
+    then
+        mkdir -p $(dirname $output)
+        for ((rank=0; rank < rank_count; rank++));
+        do
+	    CUDA_VISIBLE_DEVICES=$(( $rank % 2 )) $python $TOOL_DIR/infer/clip_interrogate.py \
+                --input_ssf 00_Raw/$i \
+                --output_prompts $output \
+                --rank $rank \
+                --total_rank $rank_count &
+        done
+        wait
+        cat $(echo $output | sed 's@.list@-*.list@') > $output
+    fi
 done

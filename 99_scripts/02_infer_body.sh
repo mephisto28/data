@@ -17,8 +17,11 @@ mkdir -p $output_dir
 for i in $(cat $input_list);
 do
     output=$output_dir/$i
-    mkdir -p $(dirname $output)
-    $python $TOOL_DIR/infer/infer_person.py \
-	    --input_ssf 00_Raw/$i \
-	    --output_ssf $output 
+    if [ ! -e $output ];
+    then
+        mkdir -p $(dirname $output)
+        $python $TOOL_DIR/infer/infer_person.py \
+            --input_ssf 00_Raw/$i \
+            --output_ssf $output 
+    fi
 done

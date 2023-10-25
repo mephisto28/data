@@ -15,7 +15,8 @@ if [[ -z $score_list ]]; then
     $python $TOOL_DIR/ssf/make_snapshot.py \
         --input_ssf $input_ssf \
         --output_img $output_img \
-        --max_height 320        
+        --max_height 320 \
+	--shuffle 1
 else
     awk -F "\t" -v t=$threshold '$NF > t {$(NF--)=""; print}' $score_list > ${output_img}.list  
     $python $TOOL_DIR/ssf/make_snapshot.py \

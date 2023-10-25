@@ -2,8 +2,8 @@ set -xe
 
 ## 1. Define input and output
 input_list=${1:-"00_Raw/input.list"}
-rank_count=${2:-"4"} 
-output_dir=01_Meta/04_clip_feature
+rank_count=${2:-"20"} 
+output_dir=03_Processed/01_crop_hair
 
 ## 2. Define Environment
 python=/mnt/lg107_ssd/zwshi/miniconda/envs/dev/bin/python
@@ -25,15 +25,14 @@ for i in $(cat $input_list);
 do
     output=$output_dir/${i}
     mkdir -p $(dirname $output)
-    
-    for rank in $(seq 0 $((rank_count - 1)));
+
+    for ((rank=0; rank < rank_count; rank++));
     do
-	CUDA_VISIBLE_DEVICES=$(( $rank % 2 )) $python $TOOL_DIR/infer/infer_clip.py \
+        CUDA_VISIBLE_DEVICES=$(( $rank % 2 )) $python $TOOL_DIR/infer/infer_crop_hair.py \
             --input_ssf 00_Raw/$i \
-            --output_features ${output}-$rank \
+            --output_ssf ${output}-${rank}-${rank_count} \
             --rank $rank \
             --total_rank $rank_count &
     done
-
     wait
 done
